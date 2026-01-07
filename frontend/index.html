@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Visualizer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #16213e;
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            color: #e94560;
+            font-size: 1.5rem;
+        }
+
+        nav button {
+            background: #0f3460;
+            color: #eee;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-left: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        nav button:hover {
+            background: #e94560;
+        }
+
+        nav button.active {
+            background: #e94560;
+        }
+
+        main {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Submit Form Styles */
+        .submit-form {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .submit-form h2 {
+            margin-bottom: 1.5rem;
+            color: #e94560;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-buttons button {
+            flex: 1;
+            padding: 0.75rem;
+            background: #0f3460;
+            border: none;
+            color: #eee;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .tab-buttons button:hover,
+        .tab-buttons button.active {
+            background: #e94560;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        input[type="url"],
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            color: #eee;
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .image-upload {
+            border: 2px dashed #0f3460;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .image-upload:hover {
+            border-color: #e94560;
+        }
+
+        .image-upload input {
+            display: none;
+        }
+
+        .image-previews {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: #c73e54;
+        }
+
+        .submit-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        /* Recipe List Styles */
+        .recipe-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .recipe-card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .recipe-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.3);
+        }
+
+        .recipe-card h3 {
+            color: #e94560;
+            margin-bottom: 0.5rem;
+        }
+
+        .recipe-card .meta {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .recipe-card .description {
+            margin-top: 0.75rem;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        /* Recipe Visualization Styles */
+        .recipe-view {
+            position: relative;
+        }
+
+        .recipe-header {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .recipe-header h2 {
+            color: #e94560;
+            margin-bottom: 0.5rem;
+        }
+
+        .recipe-header .meta {
+            color: #888;
+        }
+
+        .back-btn {
+            background: #0f3460;
+            color: #eee;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .back-btn:hover {
+            background: #e94560;
+        }
+
+        /* Base Ingredients Panel */
+        .base-ingredients {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .base-ingredients h3 {
+            color: #e94560;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .ingredient-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .ingredient-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #1a1a2e;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .ingredient-chip .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .ingredient-chip .amount {
+            color: #e94560;
+            font-weight: 500;
+        }
+
+        /* Flow Visualization */
+        .flow-container {
+            position: relative;
+            overflow-x: auto;
+            padding: 2rem 0;
+        }
+
+        .flow-canvas {
+            position: relative;
+            min-height: 400px;
+        }
+
+        /* Transform Node */
+        .transform-node {
+            position: relative;
+            background: #16213e;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #e94560;
+        }
+
+        .transform-node.passive {
+            border-left-color: #888;
+            opacity: 0.85;
+        }
+
+        .transform-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .transform-name {
+            font-weight: 600;
+            color: #e94560;
+        }
+
+        .transform-node.passive .transform-name {
+            color: #888;
+        }
+
+        .transform-duration {
+            font-size: 0.8rem;
+            color: #888;
+            background: #1a1a2e;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .transform-action {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 0.5rem;
+        }
+
+        .transform-description {
+            font-size: 0.85rem;
+            color: #888;
+            font-style: italic;
+        }
+
+        /* Pipes (Inputs/Outputs) */
+        .pipes-container {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .pipes-section {
+            flex: 1;
+        }
+
+        .pipes-section h4 {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .pipe {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.75rem;
+            background: #1a1a2e;
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+            border-left: 3px solid;
+        }
+
+        .pipe.tool {
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .pipe .amount {
+            color: #e94560;
+            font-weight: 500;
+        }
+
+        .pipe .arrow {
+            color: #666;
+        }
+
+        /* SVG for connections */
+        .connections-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .connection-path {
+            fill: none;
+            stroke-width: 2;
+            opacity: 0.4;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #0f3460;
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .error {
+            background: #5c1f1f;
+            color: #ff6b6b;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #888;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Recipe Visualizer</h1>
+        <nav>
+            <button id="nav-recipes" class="active">Recipes</button>
+            <button id="nav-submit">Add Recipe</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Recipe List View -->
+        <div id="view-list" class="view active">
+            <div id="recipe-list" class="recipe-list"></div>
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <h3>No recipes yet</h3>
+                <p>Add your first recipe to get started!</p>
+            </div>
+        </div>
+
+        <!-- Submit Recipe View -->
+        <div id="view-submit" class="view">
+            <div class="submit-form">
+                <h2>Add New Recipe</h2>
+
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="url">From URL</button>
+                    <button class="tab-btn" data-tab="text">From Text</button>
+                    <button class="tab-btn" data-tab="images">From Images</button>
+                </div>
+
+                <div id="error-message" class="error" style="display: none;"></div>
+
+                <form id="recipe-form">
+                    <div id="tab-url" class="tab-content active">
+                        <input type="url" id="input-url" placeholder="https://example.com/recipe">
+                    </div>
+
+                    <div id="tab-text" class="tab-content">
+                        <textarea id="input-text" placeholder="Paste your recipe text here..."></textarea>
+                    </div>
+
+                    <div id="tab-images" class="tab-content">
+                        <div class="image-upload" id="image-drop-zone">
+                            <p>Drop images here or click to select</p>
+                            <input type="file" id="input-images" accept="image/*" multiple>
+                        </div>
+                        <div id="image-previews" class="image-previews"></div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submit-btn">
+                        Process Recipe
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recipe Detail View -->
+        <div id="view-recipe" class="view">
+            <button class="back-btn" id="back-btn">&larr; Back to Recipes</button>
+            <div id="recipe-content"></div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = '/api';
+
+        // State
+        let currentTab = 'url';
+        let uploadedImages = [];
+
+        // DOM Elements
+        const views = {
+            list: document.getElementById('view-list'),
+            submit: document.getElementById('view-submit'),
+            recipe: document.getElementById('view-recipe')
+        };
+
+        const navBtns = {
+            recipes: document.getElementById('nav-recipes'),
+            submit: document.getElementById('nav-submit')
+        };
+
+        // Navigation
+        function showView(viewName) {
+            Object.values(views).forEach(v => v.classList.remove('active'));
+            views[viewName].classList.add('active');
+
+            navBtns.recipes.classList.toggle('active', viewName === 'list');
+            navBtns.submit.classList.toggle('active', viewName === 'submit');
+        }
+
+        navBtns.recipes.addEventListener('click', () => {
+            showView('list');
+            loadRecipes();
+        });
+
+        navBtns.submit.addEventListener('click', () => showView('submit'));
+
+        document.getElementById('back-btn').addEventListener('click', () => {
+            showView('list');
+            loadRecipes();
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                btn.classList.add('active');
+                currentTab = btn.dataset.tab;
+                document.getElementById(`tab-${currentTab}`).classList.add('active');
+            });
+        });
+
+        // Image upload handling
+        const dropZone = document.getElementById('image-drop-zone');
+        const imageInput = document.getElementById('input-images');
+        const previewsContainer = document.getElementById('image-previews');
+
+        dropZone.addEventListener('click', () => imageInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#e94560';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = '#0f3460';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#0f3460';
+            handleImages(e.dataTransfer.files);
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            handleImages(e.target.files);
+        });
+
+        function handleImages(files) {
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        uploadedImages.push(e.target.result);
+                        renderImagePreviews();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function renderImagePreviews() {
+            previewsContainer.innerHTML = uploadedImages.map((src, i) =>
+                `<img src="${src}" class="image-preview" alt="Preview ${i + 1}">`
+            ).join('');
+        }
+
+        // Form submission
+        document.getElementById('recipe-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submit-btn');
+            const errorDiv = document.getElementById('error-message');
+
+            errorDiv.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing... (this may take a minute)';
+
+            let payload = { source_type: currentTab };
+
+            if (currentTab === 'url') {
+                payload.url = document.getElementById('input-url').value;
+            } else if (currentTab === 'text') {
+                payload.text = document.getElementById('input-text').value;
+            } else if (currentTab === 'images') {
+                payload.images = uploadedImages.map(img => img.split(',')[1]); // Remove data URL prefix
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/recipes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to process recipe');
+                }
+
+                // Success - show the recipe
+                showRecipe(data.recipe_id);
+
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Process Recipe';
+            }
+        });
+
+        // Load recipes list
+        async function loadRecipes() {
+            const listContainer = document.getElementById('recipe-list');
+            const emptyState = document.getElementById('empty-state');
+
+            listContainer.innerHTML = '<div class="loading"><div class="spinner"></div>Loading recipes...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/recipes`);
+                const data = await response.json();
+
+                if (data.recipes.length === 0) {
+                    listContainer.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                listContainer.innerHTML = data.recipes.map(recipe => `
+                    <div class="recipe-card" onclick="showRecipe(${recipe.id})">
+                        <h3>${escapeHtml(recipe.name)}</h3>
+                        <div class="meta">
+                            ${recipe.servings ? `${recipe.servings} servings` : ''}
+                            ${recipe.total_time_minutes ? ` &bull; ${recipe.total_time_minutes} min` : ''}
+                            ${recipe.source_type ? ` &bull; From ${recipe.source_type}` : ''}
+                        </div>
+                        ${recipe.description ? `<div class="description">${escapeHtml(recipe.description)}</div>` : ''}
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                listContainer.innerHTML = `<div class="error">Failed to load recipes: ${err.message}</div>`;
+            }
+        }
+
+        // Show individual recipe
+        async function showRecipe(recipeId) {
+            const content = document.getElementById('recipe-content');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading recipe...</div>';
+            showView('recipe');
+
+            try {
+                const response = await fetch(`${API_BASE}/recipes/${recipeId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load recipe');
+                }
+
+                renderRecipe(data.recipe);
+
+            } catch (err) {
+                content.innerHTML = `<div class="error">Failed to load recipe: ${err.message}</div>`;
+            }
+        }
+
+        // Render recipe visualization
+        function renderRecipe(recipe) {
+            const content = document.getElementById('recipe-content');
+
+            // Find base ingredients (inputs that are not outputs of any transform)
+            const outputPipeUids = new Set();
+            recipe.transforms.forEach(t => {
+                t.outputs.forEach(o => outputPipeUids.add(o.pipe_uid));
+            });
+
+            const baseIngredients = [];
+            recipe.transforms.forEach(t => {
+                t.inputs.forEach(inp => {
+                    if (!outputPipeUids.has(inp.pipe_uid) && inp.ingredient_name) {
+                        if (!baseIngredients.find(b => b.pipe_uid === inp.pipe_uid)) {
+                            baseIngredients.push(inp);
+                        }
+                    }
+                });
+            });
+
+            // Build HTML
+            let html = `
+                <div class="recipe-header">
+                    <h2>${escapeHtml(recipe.name)}</h2>
+                    <div class="meta">
+                        ${recipe.servings ? `${recipe.servings} servings` : ''}
+                        ${recipe.total_time_minutes ? ` &bull; ${recipe.total_time_minutes} min total` : ''}
+                    </div>
+                    ${recipe.description ? `<p style="margin-top: 0.5rem; color: #aaa;">${escapeHtml(recipe.description)}</p>` : ''}
+                </div>
+            `;
+
+            // Base ingredients panel
+            if (baseIngredients.length > 0) {
+                html += `
+                    <div class="base-ingredients">
+                        <h3>Base Ingredients</h3>
+                        <div class="ingredient-list">
+                            ${baseIngredients.map(ing => `
+                                <div class="ingredient-chip">
+                                    <span class="color-dot" style="background: ${ing.color || '#888'}"></span>
+                                    <span class="amount">${ing.amount || ''} ${ing.unit_name || ''}</span>
+                                    <span>${escapeHtml(ing.display_name || ing.ingredient_name)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Transform flow
+            html += '<div class="flow-container"><div class="flow-canvas">';
+
+            recipe.transforms.forEach((transform, index) => {
+                const isPassive = !transform.active;
+
+                html += `
+                    <div class="transform-node ${isPassive ? 'passive' : ''}">
+                        <div class="transform-header">
+                            <span class="transform-name">${escapeHtml(transform.name)}</span>
+                            ${transform.duration_minutes ? `<span class="transform-duration">${transform.duration_minutes} min</span>` : ''}
+                        </div>
+                        <div class="transform-action">${escapeHtml(transform.action_name || 'process')}</div>
+                        ${transform.description ? `<div class="transform-description">${escapeHtml(transform.description)}</div>` : ''}
+
+                        <div class="pipes-container">
+                            <div class="pipes-section">
+                                <h4>Inputs</h4>
+                                ${transform.inputs.map(inp => renderPipe(inp, 'input')).join('')}
+                            </div>
+                            <div class="pipes-section">
+                                <h4>Outputs</h4>
+                                ${transform.outputs.map(out => renderPipe(out, 'output')).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div></div>';
+
+            content.innerHTML = html;
+        }
+
+        function renderPipe(io, direction) {
+            const isTool = !!io.tool_name;
+            const name = io.display_name || io.ingredient_name || io.tool_name;
+            const color = io.color || '#888';
+            const arrow = direction === 'input' ? '&rarr;' : '&larr;';
+
+            let amountStr = '';
+            if (io.amount) {
+                amountStr = `${io.amount} ${io.unit_name || ''}`;
+            }
+
+            return `
+                <div class="pipe ${isTool ? 'tool' : ''}" style="border-left-color: ${color}">
+                    ${amountStr ? `<span class="amount">${amountStr}</span>` : ''}
+                    <span>${escapeHtml(name)}</span>
+                    ${isTool ? '<span style="color: #666">(tool)</span>' : ''}
+                </div>
+            `;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Initial load
+        loadRecipes();
+    </script>
+</body>
+</html>
