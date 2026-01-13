@@ -11,6 +11,64 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import anthropic
 import requests
+from html.parser import HTMLParser
+
+# Maximum characters to send to the API (roughly 160k tokens, leaving room for system prompt and response)
+MAX_CONTENT_LENGTH = 500000
+
+class HTMLTextExtractor(HTMLParser):
+    """Extract text content from HTML, ignoring scripts, styles, and other non-content elements"""
+    def __init__(self):
+        super().__init__()
+        self.text_parts = []
+        self.skip_tags = {'script', 'style', 'noscript', 'header', 'footer', 'nav', 'aside', 'iframe'}
+        self.current_skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() in self.skip_tags:
+            self.current_skip_depth += 1
+
+    def handle_endtag(self, tag):
+        if tag.lower() in self.skip_tags and self.current_skip_depth > 0:
+            self.current_skip_depth -= 1
+
+    def handle_data(self, data):
+        if self.current_skip_depth == 0:
+            text = data.strip()
+            if text:
+                self.text_parts.append(text)
+
+    def get_text(self):
+        return '\n'.join(self.text_parts)
+
+
+def extract_text_from_html(html_content):
+    """Extract readable text from HTML content"""
+    parser = HTMLTextExtractor()
+    try:
+        parser.feed(html_content)
+        return parser.get_text()
+    except:
+        # If parsing fails, return raw content (might be plain text)
+        return html_content
+
+
+def truncate_content(content, max_length=MAX_CONTENT_LENGTH):
+    """Truncate content to a maximum length, trying to break at sentence boundaries"""
+    if len(content) <= max_length:
+        return content
+
+    # Try to find a good break point (end of sentence)
+    truncated = content[:max_length]
+    last_period = truncated.rfind('.')
+    last_newline = truncated.rfind('\n')
+
+    break_point = max(last_period, last_newline)
+    if break_point > max_length * 0.8:  # Only use break point if it's reasonably close to the end
+        return truncated[:break_point + 1] + "\n\n[Content truncated due to length...]"
+
+    return truncated + "\n\n[Content truncated due to length...]"
+
 
 # Database connection
 def get_db():
@@ -111,12 +169,17 @@ Return ONLY valid JSON, no explanation."""
 
 
 def fetch_url_content(url):
-    """Fetch content from a URL"""
+    """Fetch content from a URL, extract text, and truncate if necessary"""
     try:
         headers = {'User-Agent': 'RecipeViz/1.0'}
         response = requests.get(url, headers=headers, timeout=30)
         response.raise_for_status()
-        return response.text
+
+        # Extract text content from HTML
+        text_content = extract_text_from_html(response.text)
+
+        # Truncate if necessary to avoid exceeding API token limits
+        return truncate_content(text_content)
     except Exception as e:
         raise Exception(f"Failed to fetch URL: {str(e)}")
 
@@ -154,7 +217,7 @@ def extract_recipe_with_sonnet(content, content_type='text'):
 
     response = client.messages.create(
         model=SONNET_MODEL,
-        max_tokens=4096,
+        max_tokens=16384,
         system=EXTRACTION_PROMPT,
         messages=messages
     )
@@ -164,14 +227,15 @@ def extract_recipe_with_sonnet(content, content_type='text'):
 
 def structure_recipe_with_opus(markdown_recipe):
     """Second pass: Structure recipe into transforms using Opus"""
-    response = client.messages.create(
+    response_text = ""
+    with client.messages.stream(
         model=OPUS_MODEL,
-        max_tokens=8192,
+        max_tokens=32000,
         system=STRUCTURING_PROMPT,
         messages=[{"role": "user", "content": markdown_recipe}]
-    )
-
-    response_text = response.content[0].text
+    ) as stream:
+        for text in stream.text_stream:
+            response_text += text
 
     # Try to extract JSON from the response
     try:
@@ -510,6 +574,9 @@ class RequestHandler(BaseHTTPRequestHandler):
                     if not text:
                         self.send_error_json('Text is required')
                         return
+
+                    # Truncate if necessary to avoid exceeding API token limits
+                    text = truncate_content(text)
 
                     # First pass: extract recipe
                     distilled_text = extract_recipe_with_sonnet(text, 'text')
