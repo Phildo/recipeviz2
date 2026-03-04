@@ -256,6 +256,7 @@
             width: 100vw;
             margin-left: calc(50% - 50vw);
             padding: 1rem 1.5rem 2rem;
+            --flow-port-size: 14px;
         }
 
         .steps-list {
@@ -290,7 +291,6 @@
         }
 
         .step-ports.in {
-            justify-content: flex-start;
             border-bottom: 1px dashed #2c3f67;
         }
 
@@ -299,10 +299,23 @@
             border-top: 1px dashed #2c3f67;
         }
 
+        .step-port-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.4rem;
+            min-height: 14px;
+        }
+
+        .step-port-group.right {
+            margin-left: auto;
+            justify-content: flex-end;
+        }
+
         .flow-port {
             display: inline-block;
-            width: 14px;
-            height: 14px;
+            width: var(--flow-port-size);
+            height: var(--flow-port-size);
             color: var(--pipe-color, #9fb2d0);
             border: 2px solid currentColor;
             background: rgba(15, 22, 42, 0.92);
@@ -363,9 +376,15 @@
             align-self: flex-start;
         }
 
+        .ingredient-entry.incoming.derived {
+            justify-content: flex-end;
+            align-self: flex-end;
+        }
+
         .ingredient-entry.outgoing {
             justify-content: flex-end;
             align-self: flex-end;
+            margin-right: calc(var(--right-rail-count, 0) * var(--flow-port-size));
         }
 
         .ingredient-port {
@@ -771,6 +790,26 @@
             const content = document.getElementById('recipe-content');
             const transforms = [...(recipe.transforms || [])]
                 .sort((a, b) => (a.step_order ?? 0) - (b.step_order ?? 0));
+            const firstProducerStepByPipe = new Map();
+            const lastConsumerStepByPipe = new Map();
+
+            transforms.forEach((transform, stepIdx) => {
+                uniqueIoByPipe(transform.outputs || []).forEach(output => {
+                    const pipeUid = normalizePipeUid(output.pipe_uid);
+                    if (pipeUid !== null && !firstProducerStepByPipe.has(pipeUid)) {
+                        firstProducerStepByPipe.set(pipeUid, stepIdx);
+                    }
+                });
+
+                uniqueIoByPipe(transform.inputs || []).forEach(input => {
+                    const pipeUid = normalizePipeUid(input.pipe_uid);
+                    if (pipeUid === null) return;
+                    const currentMax = lastConsumerStepByPipe.get(pipeUid);
+                    if (currentMax === undefined || stepIdx > currentMax) {
+                        lastConsumerStepByPipe.set(pipeUid, stepIdx);
+                    }
+                });
+            });
 
             let html = `
                 <div class="recipe-header">
@@ -794,14 +833,35 @@
                 const prevOutputPipes = previousStep
                     ? pipeSetFromIo(previousStep.outputs || [])
                     : new Set();
+                const rightRailCount = countRightRailPipesAtStep(
+                    index,
+                    firstProducerStepByPipe,
+                    lastConsumerStepByPipe
+                );
                 const listInputs = inputs.filter(input => {
                     const pipeUid = normalizePipeUid(input.pipe_uid);
                     return !(pipeUid && prevOutputPipes.has(pipeUid));
                 });
+                const baseInputs = [];
+                const derivedInputs = [];
+
+                inputs.forEach(input => {
+                    const pipeUid = normalizePipeUid(input.pipe_uid);
+                    const producerStepIdx = pipeUid === null ? undefined : firstProducerStepByPipe.get(pipeUid);
+                    const isDerivedInput = producerStepIdx !== undefined && producerStepIdx < index;
+                    if (isDerivedInput) {
+                        derivedInputs.push(input);
+                    } else {
+                        baseInputs.push(input);
+                    }
+                });
 
                 if (listInputs.length > 0) {
                     listInputs.forEach(input => {
-                        html += renderIngredientEntry(input, transform.id, 'in', stepNumber);
+                        const pipeUid = normalizePipeUid(input.pipe_uid);
+                        const producerStepIdx = pipeUid === null ? undefined : firstProducerStepByPipe.get(pipeUid);
+                        const isDerivedInput = producerStepIdx !== undefined && producerStepIdx < index;
+                        html += renderIngredientEntry(input, transform.id, isDerivedInput ? 'in-derived' : 'in', stepNumber);
                     });
                 }
 
@@ -809,7 +869,14 @@
                     <section class="transform-step ${isPassive ? 'passive' : ''}" data-transform-id="${escapeHtml(String(transform.id))}">
                         <div class="step-ports in">
                             ${inputs.length > 0
-                                ? inputs.map(input => renderFlowPort(input, transform.id, 'in', 'transform')).join('')
+                                ? `
+                                    <div class="step-port-group left">
+                                        ${baseInputs.map(input => renderFlowPort(input, transform.id, 'in', 'transform')).join('')}
+                                    </div>
+                                    <div class="step-port-group right">
+                                        ${derivedInputs.map(input => renderFlowPort(input, transform.id, 'in', 'transform')).join('')}
+                                    </div>
+                                `
                                 : '<span class="step-chip">No incoming flow</span>'}
                         </div>
                         <div class="step-body">
@@ -833,7 +900,7 @@
 
                 if (outputs.length > 0) {
                     outputs.forEach(output => {
-                        html += renderIngredientEntry(output, transform.id, 'out', stepNumber);
+                        html += renderIngredientEntry(output, transform.id, 'out', stepNumber, rightRailCount);
                     });
                 }
             });
@@ -863,16 +930,18 @@
             `;
         }
 
-        function renderIngredientEntry(io, transformId, direction, stepNumber) {
+        function renderIngredientEntry(io, transformId, direction, stepNumber, rightRailCount = 0) {
             const pipeUid = normalizePipeUid(io.pipe_uid);
             const color = getPipeColor(pipeUid, io.color);
             const amount = formatAmount(io);
             const name = formatName(io);
             const isTool = io.tool_name && !io.ingredient_name;
-            const label = direction === 'in'
+            const isInput = direction !== 'out';
+            const portDir = isInput ? 'in' : 'out';
+            const label = isInput
                 ? `Step ${stepNumber} input`
                 : `Step ${stepNumber} output`;
-            const port = renderFlowPort(io, transformId, direction, 'ingredient');
+            const port = renderFlowPort(io, transformId, portDir, 'ingredient');
             const ingredientBody = `
                 <div class="ingredient-entry-main" style="--pipe-color: ${color};">
                     <span class="ingredient-dot"></span>
@@ -881,13 +950,15 @@
                     ${isTool ? '<span class="ingredient-tool">(tool)</span>' : ''}
                 </div>
             `;
+            const content = direction === 'in' ? `${port}${ingredientBody}` : `${ingredientBody}${port}`;
 
             return `
                 <section
-                    class="ingredient-entry ${direction === 'in' ? 'incoming' : 'outgoing'}"
+                    class="ingredient-entry ${isInput ? 'incoming' : 'outgoing'}${direction === 'in-derived' ? ' derived' : ''}"
                     title="${escapeHtml(label)}"
+                    style="--right-rail-count: ${rightRailCount};"
                 >
-                    ${direction === 'in' ? `${port}${ingredientBody}` : `${ingredientBody}${port}`}
+                    ${content}
                 </section>
             `;
         }
@@ -1085,6 +1156,18 @@
                 if (pipeUid !== null) set.add(pipeUid);
             });
             return set;
+        }
+
+        function countRightRailPipesAtStep(stepIdx, firstProducerStepByPipe, lastConsumerStepByPipe) {
+            let count = 0;
+            firstProducerStepByPipe.forEach((producerStep, pipeUid) => {
+                const lastConsumerStep = lastConsumerStepByPipe.get(pipeUid);
+                if (lastConsumerStep === undefined) return;
+                if (producerStep <= stepIdx && lastConsumerStep > stepIdx) {
+                    count += 1;
+                }
+            });
+            return count;
         }
 
         function normalizePipeUid(pipeUid) {
