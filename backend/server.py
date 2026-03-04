@@ -3,10 +3,9 @@
 
 import os
 import json
-import base64
 import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import anthropic
@@ -82,8 +81,8 @@ def get_db():
 # Anthropic client
 client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY', ''))
 
-SONNET_MODEL = "claude-sonnet-4-20250514"
-OPUS_MODEL = "claude-opus-4-20250514"
+SONNET_MODEL = "claude-sonnet-4-6"
+OPUS_MODEL = "claude-opus-4-6"
 
 EXTRACTION_PROMPT = """You are a recipe extraction assistant. Your task is to extract ONLY the recipe content from the provided input and format it as clean markdown.
 
@@ -290,6 +289,41 @@ def get_or_create_unit(cursor, name):
     return cursor.fetchone()['id']
 
 
+def get_io_ids(cursor, io_data):
+    """Resolve ingredient/tool/unit IDs for a transform IO row."""
+    ingredient_id = None
+    tool_id = None
+
+    if 'ingredient' in io_data:
+        ingredient_id = get_or_create_ingredient(cursor, io_data['ingredient'])
+    elif 'tool' in io_data:
+        tool_id = get_or_create_tool(cursor, io_data['tool'])
+
+    unit_id = get_or_create_unit(cursor, io_data.get('unit'))
+    return ingredient_id, tool_id, unit_id
+
+
+def insert_transform_io(cursor, recipe_id, transform_id, io_data, is_output):
+    """Insert one input/output row for a transform."""
+    ingredient_id, tool_id, unit_id = get_io_ids(cursor, io_data)
+    cursor.execute("""
+        INSERT INTO recipe_transform_io
+        (recipe_id, recipe_transform_id, is_output, ingredient_id, tool_id, pipe_uid, display_name, color, unit_id, amount)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        recipe_id,
+        transform_id,
+        is_output,
+        ingredient_id,
+        tool_id,
+        io_data.get('pipe_uid', 0),
+        io_data.get('display_name'),
+        io_data.get('color'),
+        unit_id,
+        io_data.get('amount')
+    ))
+
+
 def save_recipe_to_db(structured_data, distilled_text, source_type, source_url=None):
     """Save the structured recipe to the database"""
     conn = get_db()
@@ -342,63 +376,10 @@ def save_recipe_to_db(structured_data, distilled_text, source_type, source_url=N
             ))
             transform_id = cursor.fetchone()['id']
 
-            # Process inputs
-            for io_data in transform_data.get('inputs', []):
-                ingredient_id = None
-                tool_id = None
-
-                if 'ingredient' in io_data:
-                    ingredient_id = get_or_create_ingredient(cursor, io_data['ingredient'])
-                elif 'tool' in io_data:
-                    tool_id = get_or_create_tool(cursor, io_data['tool'])
-
-                unit_id = get_or_create_unit(cursor, io_data.get('unit'))
-
-                cursor.execute("""
-                    INSERT INTO recipe_transform_io
-                    (recipe_id, recipe_transform_id, is_output, ingredient_id, tool_id, pipe_uid, display_name, color, unit_id, amount)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    recipe_id,
-                    transform_id,
-                    False,
-                    ingredient_id,
-                    tool_id,
-                    io_data.get('pipe_uid', 0),
-                    io_data.get('display_name'),
-                    io_data.get('color'),
-                    unit_id,
-                    io_data.get('amount')
-                ))
-
-            # Process outputs
-            for io_data in transform_data.get('outputs', []):
-                ingredient_id = None
-                tool_id = None
-
-                if 'ingredient' in io_data:
-                    ingredient_id = get_or_create_ingredient(cursor, io_data['ingredient'])
-                elif 'tool' in io_data:
-                    tool_id = get_or_create_tool(cursor, io_data['tool'])
-
-                unit_id = get_or_create_unit(cursor, io_data.get('unit'))
-
-                cursor.execute("""
-                    INSERT INTO recipe_transform_io
-                    (recipe_id, recipe_transform_id, is_output, ingredient_id, tool_id, pipe_uid, display_name, color, unit_id, amount)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    recipe_id,
-                    transform_id,
-                    True,
-                    ingredient_id,
-                    tool_id,
-                    io_data.get('pipe_uid', 0),
-                    io_data.get('display_name'),
-                    io_data.get('color'),
-                    unit_id,
-                    io_data.get('amount')
-                ))
+            # Process inputs and outputs
+            for is_output, key in ((False, 'inputs'), (True, 'outputs')):
+                for io_data in transform_data.get(key, []):
+                    insert_transform_io(cursor, recipe_id, transform_id, io_data, is_output)
 
         conn.commit()
         return recipe_id
@@ -496,6 +477,38 @@ def get_all_recipes():
         conn.close()
 
 
+def resolve_recipe_source(data):
+    """Validate and normalize incoming recipe source payload."""
+    source_type = data.get('source_type')
+
+    if source_type == 'url':
+        url = data.get('url')
+        if not url:
+            raise ValueError('URL is required')
+        return source_type, fetch_url_content(url), 'text', url
+
+    if source_type == 'text':
+        text = data.get('text')
+        if not text:
+            raise ValueError('Text is required')
+        return source_type, truncate_content(text), 'text', None
+
+    if source_type == 'images':
+        images = data.get('images', [])
+        if not images:
+            raise ValueError('Images are required')
+        return source_type, images, 'images', None
+
+    raise ValueError('Invalid source_type. Must be url, text, or images')
+
+
+def process_recipe(source_type, content, content_type, source_url=None):
+    """Run the two-pass LLM pipeline and persist the result."""
+    distilled_text = extract_recipe_with_sonnet(content, content_type)
+    structured_data = structure_recipe_with_opus(distilled_text)
+    return save_recipe_to_db(structured_data, distilled_text, source_type, source_url)
+
+
 class RequestHandler(BaseHTTPRequestHandler):
     def send_json(self, data, status=200):
         self.send_response(status)
@@ -547,70 +560,14 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             try:
                 data = json.loads(body)
-                source_type = data.get('source_type')
-
-                if source_type == 'url':
-                    url = data.get('url')
-                    if not url:
-                        self.send_error_json('URL is required')
-                        return
-
-                    # Fetch URL content
-                    content = fetch_url_content(url)
-
-                    # First pass: extract recipe
-                    distilled_text = extract_recipe_with_sonnet(content, 'text')
-
-                    # Second pass: structure recipe
-                    structured_data = structure_recipe_with_opus(distilled_text)
-
-                    # Save to database
-                    recipe_id = save_recipe_to_db(structured_data, distilled_text, 'url', url)
-
-                    self.send_json({'recipe_id': recipe_id, 'message': 'Recipe created successfully'})
-
-                elif source_type == 'text':
-                    text = data.get('text')
-                    if not text:
-                        self.send_error_json('Text is required')
-                        return
-
-                    # Truncate if necessary to avoid exceeding API token limits
-                    text = truncate_content(text)
-
-                    # First pass: extract recipe
-                    distilled_text = extract_recipe_with_sonnet(text, 'text')
-
-                    # Second pass: structure recipe
-                    structured_data = structure_recipe_with_opus(distilled_text)
-
-                    # Save to database
-                    recipe_id = save_recipe_to_db(structured_data, distilled_text, 'text')
-
-                    self.send_json({'recipe_id': recipe_id, 'message': 'Recipe created successfully'})
-
-                elif source_type == 'images':
-                    images = data.get('images', [])
-                    if not images:
-                        self.send_error_json('Images are required')
-                        return
-
-                    # First pass: extract recipe from images
-                    distilled_text = extract_recipe_with_sonnet(images, 'images')
-
-                    # Second pass: structure recipe
-                    structured_data = structure_recipe_with_opus(distilled_text)
-
-                    # Save to database
-                    recipe_id = save_recipe_to_db(structured_data, distilled_text, 'images')
-
-                    self.send_json({'recipe_id': recipe_id, 'message': 'Recipe created successfully'})
-
-                else:
-                    self.send_error_json('Invalid source_type. Must be url, text, or images')
+                source_type, content, content_type, source_url = resolve_recipe_source(data)
+                recipe_id = process_recipe(source_type, content, content_type, source_url)
+                self.send_json({'recipe_id': recipe_id, 'message': 'Recipe created successfully'})
 
             except json.JSONDecodeError:
                 self.send_error_json('Invalid JSON')
+            except ValueError as e:
+                self.send_error_json(str(e))
             except Exception as e:
                 self.send_error_json(str(e), 500)
 
