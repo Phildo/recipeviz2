@@ -250,169 +250,191 @@
             background: #e94560;
         }
 
-        /* Base Ingredients Panel */
-        .base-ingredients {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
+        /* Flow Visualization */
+        .graph-shell {
+            position: relative;
+            width: 100vw;
+            margin-left: calc(50% - 50vw);
+            padding: 1rem 1.5rem 2rem;
         }
 
-        .base-ingredients h3 {
-            color: #e94560;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
+        .steps-list {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
-        .ingredient-list {
+        .transform-step {
+            position: relative;
+            background: rgba(22, 33, 62, 0.94);
+            border: 1px solid #28406e;
+            border-left: 6px solid #e94560;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+        }
+
+        .transform-step.passive {
+            border-left-color: #888;
+            opacity: 0.9;
+        }
+
+        .step-ports {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.75rem;
-        }
-
-        .ingredient-chip {
-            display: flex;
             align-items: center;
-            gap: 0.5rem;
-            background: #1a1a2e;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            gap: 0.4rem;
+            padding: 0.45rem 1rem;
+            background: rgba(12, 18, 36, 0.72);
         }
 
-        .ingredient-chip .color-dot {
-            width: 12px;
-            height: 12px;
+        .step-ports.in {
+            justify-content: flex-start;
+            border-bottom: 1px dashed #2c3f67;
+        }
+
+        .step-ports.out {
+            justify-content: flex-end;
+            border-top: 1px dashed #2c3f67;
+        }
+
+        .flow-port {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            color: var(--pipe-color, #9fb2d0);
+            border: 2px solid currentColor;
+            background: rgba(15, 22, 42, 0.92);
             border-radius: 50%;
         }
 
-        .ingredient-chip .amount {
-            color: #e94560;
-            font-weight: 500;
+        .step-body {
+            padding: 1rem 1.1rem;
         }
 
-        /* Flow Visualization */
-        .flow-container {
-            position: relative;
-            overflow-x: auto;
-            padding: 2rem 0;
-        }
-
-        .flow-canvas {
-            position: relative;
-            min-height: 400px;
-        }
-
-        /* Transform Node */
-        .transform-node {
-            position: relative;
-            background: #16213e;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            border-left: 4px solid #e94560;
-        }
-
-        .transform-node.passive {
-            border-left-color: #888;
-            opacity: 0.85;
-        }
-
-        .transform-header {
+        .step-titleline {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 0.75rem;
+            gap: 1rem;
+            margin-bottom: 0.55rem;
         }
 
-        .transform-name {
-            font-weight: 600;
-            color: #e94560;
+        .step-title {
+            color: #ff718a;
+            font-size: 1.05rem;
+            font-weight: 700;
         }
 
-        .transform-node.passive .transform-name {
-            color: #888;
+        .step-submeta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            font-size: 0.78rem;
+            color: #93a4c2;
         }
 
-        .transform-duration {
-            font-size: 0.8rem;
-            color: #888;
-            background: #1a1a2e;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
+        .step-chip {
+            background: rgba(15, 22, 42, 0.92);
+            border: 1px solid #334973;
+            border-radius: 999px;
+            padding: 0.15rem 0.5rem;
         }
 
-        .transform-action {
-            font-size: 0.9rem;
-            color: #aaa;
-            margin-bottom: 0.5rem;
-        }
-
-        .transform-description {
-            font-size: 0.85rem;
-            color: #888;
+        .step-description {
+            font-size: 0.84rem;
+            color: #8b9ab8;
             font-style: italic;
+            line-height: 1.35;
         }
 
-        /* Pipes (Inputs/Outputs) */
-        .pipes-container {
-            display: flex;
-            gap: 2rem;
-            margin-top: 1rem;
-        }
-
-        .pipes-section {
-            flex: 1;
-        }
-
-        .pipes-section h4 {
-            font-size: 0.75rem;
-            color: #666;
-            text-transform: uppercase;
-            margin-bottom: 0.5rem;
-        }
-
-        .pipe {
-            display: flex;
+        .ingredient-entry {
+            width: fit-content;
+            max-width: 100%;
+            display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.4rem 0.75rem;
-            background: #1a1a2e;
-            border-radius: 4px;
-            margin-bottom: 0.25rem;
-            font-size: 0.85rem;
-            border-left: 3px solid;
+            gap: 0.65rem;
+            align-self: flex-start;
         }
 
-        .pipe.tool {
-            opacity: 0.7;
-            font-style: italic;
+        .ingredient-entry.incoming {
+            justify-content: flex-start;
+            align-self: flex-start;
         }
 
-        .pipe .amount {
-            color: #e94560;
-            font-weight: 500;
+        .ingredient-entry.outgoing {
+            justify-content: flex-end;
+            align-self: flex-end;
         }
 
-        .pipe .arrow {
-            color: #666;
+        .ingredient-port {
+            flex-shrink: 0;
+        }
+
+        .ingredient-entry-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border-radius: 999px;
+            border: 1px solid rgba(159, 178, 208, 0.38);
+            background: rgba(12, 18, 36, 0.92);
+            padding: 0.2rem 0.65rem;
+            font-size: 0.8rem;
+            color: #d9e5ff;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        .ingredient-entry-main .ingredient-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--pipe-color, #9fb2d0);
+            flex-shrink: 0;
+        }
+
+        .ingredient-entry-main .ingredient-amount {
+            color: #ffd6de;
+            font-weight: 600;
+        }
+
+        .ingredient-entry-main .ingredient-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ingredient-entry-main .ingredient-tool {
+            color: #93a4c2;
+            font-size: 0.75rem;
         }
 
         /* SVG for connections */
-        .connections-svg {
+        .flow-svg {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 0;
+            z-index: 1;
         }
 
-        .connection-path {
+        .flow-link {
             fill: none;
-            stroke-width: 2;
-            opacity: 0.4;
+            stroke-width: 3;
+            stroke-linecap: round;
+            opacity: 0.74;
+        }
+
+        .flow-link.base-input {
+            stroke-dasharray: 5 5;
+            opacity: 0.64;
+        }
+
+        .flow-link.terminal-output {
+            stroke-dasharray: 3 7;
+            opacity: 0.6;
         }
 
         /* Loading */
@@ -455,6 +477,21 @@
         .empty-state h3 {
             margin-bottom: 0.5rem;
             color: #aaa;
+        }
+
+        @media (max-width: 760px) {
+            .graph-shell {
+                padding: 0.75rem 0.75rem 1.5rem;
+            }
+
+            .ingredient-entry,
+            .ingredient-entry.outgoing {
+                align-self: flex-start;
+            }
+
+            .ingredient-entry-main {
+                white-space: normal;
+            }
         }
     </style>
 </head>
@@ -527,6 +564,14 @@
         // State
         let currentTab = 'url';
         let uploadedImages = [];
+        let currentRecipeData = null;
+        let flowDrawRaf = null;
+
+        const PIPE_PALETTE = [
+            '#ff6b6b', '#ffd166', '#06d6a0', '#4cc9f0', '#90be6d',
+            '#f4a261', '#e9c46a', '#8ecae6', '#a0c4ff', '#ff99c8',
+            '#80ed99', '#bdb2ff'
+        ];
 
         // DOM Elements
         const views = {
@@ -703,6 +748,7 @@
         async function showRecipe(recipeId) {
             const content = document.getElementById('recipe-content');
             content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading recipe...</div>';
+            currentRecipeData = null;
             showView('recipe');
 
             try {
@@ -723,25 +769,9 @@
         // Render recipe visualization
         function renderRecipe(recipe) {
             const content = document.getElementById('recipe-content');
+            const transforms = [...(recipe.transforms || [])]
+                .sort((a, b) => (a.step_order ?? 0) - (b.step_order ?? 0));
 
-            // Find base ingredients (inputs that are not outputs of any transform)
-            const outputPipeUids = new Set();
-            recipe.transforms.forEach(t => {
-                t.outputs.forEach(o => outputPipeUids.add(o.pipe_uid));
-            });
-
-            const baseIngredients = [];
-            recipe.transforms.forEach(t => {
-                t.inputs.forEach(inp => {
-                    if (!outputPipeUids.has(inp.pipe_uid) && inp.ingredient_name) {
-                        if (!baseIngredients.find(b => b.pipe_uid === inp.pipe_uid)) {
-                            baseIngredients.push(inp);
-                        }
-                    }
-                });
-            });
-
-            // Build HTML
             let html = `
                 <div class="recipe-header">
                     <h2>${escapeHtml(recipe.name)}</h2>
@@ -753,76 +783,345 @@
                 </div>
             `;
 
-            // Base ingredients panel
-            if (baseIngredients.length > 0) {
-                html += `
-                    <div class="base-ingredients">
-                        <h3>Base Ingredients</h3>
-                        <div class="ingredient-list">
-                            ${baseIngredients.map(ing => `
-                                <div class="ingredient-chip">
-                                    <span class="color-dot" style="background: ${ing.color || '#888'}"></span>
-                                    <span class="amount">${ing.amount || ''} ${ing.unit_name || ''}</span>
-                                    <span>${escapeHtml(ing.display_name || ing.ingredient_name)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }
+            html += '<div class="graph-shell"><svg class="flow-svg" aria-hidden="true"></svg><div class="steps-list">';
 
-            // Transform flow
-            html += '<div class="flow-container"><div class="flow-canvas">';
-
-            recipe.transforms.forEach((transform, index) => {
+            transforms.forEach((transform, index) => {
                 const isPassive = !transform.active;
+                const inputs = uniqueIoByPipe(transform.inputs || []);
+                const outputs = uniqueIoByPipe(transform.outputs || []);
+                const stepNumber = index + 1;
+                const previousStep = index > 0 ? transforms[index - 1] : null;
+                const prevOutputPipes = previousStep
+                    ? pipeSetFromIo(previousStep.outputs || [])
+                    : new Set();
+                const listInputs = inputs.filter(input => {
+                    const pipeUid = normalizePipeUid(input.pipe_uid);
+                    return !(pipeUid && prevOutputPipes.has(pipeUid));
+                });
+
+                if (listInputs.length > 0) {
+                    listInputs.forEach(input => {
+                        html += renderIngredientEntry(input, transform.id, 'in', stepNumber);
+                    });
+                }
 
                 html += `
-                    <div class="transform-node ${isPassive ? 'passive' : ''}">
-                        <div class="transform-header">
-                            <span class="transform-name">${escapeHtml(transform.name)}</span>
-                            ${transform.duration_minutes ? `<span class="transform-duration">${transform.duration_minutes} min</span>` : ''}
+                    <section class="transform-step ${isPassive ? 'passive' : ''}" data-transform-id="${escapeHtml(String(transform.id))}">
+                        <div class="step-ports in">
+                            ${inputs.length > 0
+                                ? inputs.map(input => renderFlowPort(input, transform.id, 'in', 'transform')).join('')
+                                : '<span class="step-chip">No incoming flow</span>'}
                         </div>
-                        <div class="transform-action">${escapeHtml(transform.action_name || 'process')}</div>
-                        ${transform.description ? `<div class="transform-description">${escapeHtml(transform.description)}</div>` : ''}
-
-                        <div class="pipes-container">
-                            <div class="pipes-section">
-                                <h4>Inputs</h4>
-                                ${transform.inputs.map(inp => renderPipe(inp, 'input')).join('')}
+                        <div class="step-body">
+                            <div class="step-titleline">
+                                <span class="step-title">${stepNumber}. ${escapeHtml(transform.name || 'Unnamed step')}</span>
+                                <div class="step-submeta">
+                                    <span class="step-chip">${escapeHtml(transform.action_name || 'process')}</span>
+                                    ${transform.duration_minutes ? `<span class="step-chip">${transform.duration_minutes} min</span>` : ''}
+                                    ${isPassive ? '<span class="step-chip">Passive</span>' : '<span class="step-chip">Active</span>'}
+                                </div>
                             </div>
-                            <div class="pipes-section">
-                                <h4>Outputs</h4>
-                                ${transform.outputs.map(out => renderPipe(out, 'output')).join('')}
-                            </div>
+                            ${transform.description ? `<div class="step-description">${escapeHtml(transform.description)}</div>` : ''}
                         </div>
-                    </div>
+                        <div class="step-ports out">
+                            ${outputs.length > 0
+                                ? outputs.map(output => renderFlowPort(output, transform.id, 'out', 'transform')).join('')
+                                : '<span class="step-chip">No outgoing flow</span>'}
+                        </div>
+                    </section>
                 `;
+
+                if (outputs.length > 0) {
+                    outputs.forEach(output => {
+                        html += renderIngredientEntry(output, transform.id, 'out', stepNumber);
+                    });
+                }
             });
 
             html += '</div></div>';
 
             content.innerHTML = html;
+            currentRecipeData = { ...recipe, transforms };
+            scheduleFlowDraw();
         }
 
-        function renderPipe(io, direction) {
-            const isTool = !!io.tool_name;
-            const name = io.display_name || io.ingredient_name || io.tool_name;
-            const color = io.color || '#888';
-            const arrow = direction === 'input' ? '&rarr;' : '&larr;';
-
-            let amountStr = '';
-            if (io.amount) {
-                amountStr = `${io.amount} ${io.unit_name || ''}`;
-            }
+        function renderFlowPort(io, transformId, direction, role) {
+            const pipeUid = normalizePipeUid(io.pipe_uid);
+            const color = getPipeColor(pipeUid, io.color);
+            const label = formatIoLabel(io, true);
 
             return `
-                <div class="pipe ${isTool ? 'tool' : ''}" style="border-left-color: ${color}">
-                    ${amountStr ? `<span class="amount">${amountStr}</span>` : ''}
-                    <span>${escapeHtml(name)}</span>
-                    ${isTool ? '<span style="color: #666">(tool)</span>' : ''}
+                <span
+                    class="flow-port"
+                    data-transform-id="${escapeHtml(String(transformId))}"
+                    data-pipe-uid="${pipeUid === null ? '' : escapeHtml(pipeUid)}"
+                    data-dir="${direction}"
+                    data-port-role="${role}"
+                    title="${escapeHtml(label)}"
+                    style="--pipe-color: ${color};"
+                ></span>
+            `;
+        }
+
+        function renderIngredientEntry(io, transformId, direction, stepNumber) {
+            const pipeUid = normalizePipeUid(io.pipe_uid);
+            const color = getPipeColor(pipeUid, io.color);
+            const amount = formatAmount(io);
+            const name = formatName(io);
+            const isTool = io.tool_name && !io.ingredient_name;
+            const label = direction === 'in'
+                ? `Step ${stepNumber} input`
+                : `Step ${stepNumber} output`;
+            const port = renderFlowPort(io, transformId, direction, 'ingredient');
+            const ingredientBody = `
+                <div class="ingredient-entry-main" style="--pipe-color: ${color};">
+                    <span class="ingredient-dot"></span>
+                    ${amount ? `<span class="ingredient-amount">${escapeHtml(amount)}</span>` : ''}
+                    <span class="ingredient-name">${escapeHtml(name)}</span>
+                    ${isTool ? '<span class="ingredient-tool">(tool)</span>' : ''}
                 </div>
             `;
+
+            return `
+                <section
+                    class="ingredient-entry ${direction === 'in' ? 'incoming' : 'outgoing'}"
+                    title="${escapeHtml(label)}"
+                >
+                    ${direction === 'in' ? `${port}${ingredientBody}` : `${ingredientBody}${port}`}
+                </section>
+            `;
+        }
+
+        function scheduleFlowDraw() {
+            if (flowDrawRaf) {
+                cancelAnimationFrame(flowDrawRaf);
+            }
+            flowDrawRaf = requestAnimationFrame(drawRecipeFlows);
+        }
+
+        function drawRecipeFlows() {
+            flowDrawRaf = null;
+            if (!currentRecipeData) return;
+
+            const graphShell = document.querySelector('#recipe-content .graph-shell');
+            if (!graphShell) return;
+
+            const svg = graphShell.querySelector('.flow-svg');
+            if (!svg) return;
+
+            const width = Math.max(1, Math.round(graphShell.clientWidth));
+            const height = Math.max(1, Math.round(graphShell.scrollHeight));
+            const leftX = 24;
+            const rightX = width - 24;
+
+            svg.innerHTML = '';
+            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            svg.setAttribute('width', String(width));
+            svg.setAttribute('height', String(height));
+
+            const shellRect = graphShell.getBoundingClientRect();
+            const transformInPorts = new Map();
+            const transformOutPorts = new Map();
+            const ingredientInPorts = new Map();
+            const ingredientOutPorts = new Map();
+
+            graphShell.querySelectorAll('.flow-port[data-pipe-uid]').forEach(port => {
+                const pipeUid = port.dataset.pipeUid || '';
+                const transformId = port.dataset.transformId || '';
+                const dir = port.dataset.dir || '';
+                const role = port.dataset.portRole || 'transform';
+                if (!pipeUid || !transformId) return;
+
+                const rect = port.getBoundingClientRect();
+                const point = {
+                    x: rect.left - shellRect.left + (rect.width / 2),
+                    y: rect.top - shellRect.top + (rect.height / 2)
+                };
+                const key = `${transformId}|${pipeUid}`;
+
+                if (role === 'ingredient' && dir === 'in') {
+                    ingredientInPorts.set(key, point);
+                } else if (role === 'ingredient' && dir === 'out') {
+                    ingredientOutPorts.set(key, point);
+                } else if (dir === 'in') {
+                    transformInPorts.set(key, point);
+                } else if (dir === 'out') {
+                    transformOutPorts.set(key, point);
+                }
+            });
+
+            const transforms = [...(currentRecipeData.transforms || [])]
+                .sort((a, b) => (a.step_order ?? 0) - (b.step_order ?? 0));
+            const transformRank = new Map();
+            transforms.forEach((transform, index) => transformRank.set(String(transform.id), index));
+
+            const producersByPipe = new Map();
+            const consumersByPipe = new Map();
+            const metaByPipe = new Map();
+            const allPipes = new Set();
+
+            transforms.forEach(transform => {
+                const transformId = String(transform.id);
+                const transformInputs = uniqueIoByPipe(transform.inputs || []);
+                const transformOutputs = uniqueIoByPipe(transform.outputs || []);
+
+                transformInputs.forEach(input => {
+                    const pipeUid = normalizePipeUid(input.pipe_uid);
+                    if (pipeUid === null) return;
+                    const key = `${transformId}|${pipeUid}`;
+                    const start = ingredientInPorts.get(key);
+                    const end = transformInPorts.get(key);
+                    if (!start || !end) return;
+                    appendPath(svg, buildCurvePath(start, end), getPipeColor(pipeUid, input.color), 'flow-link');
+                });
+
+                transformOutputs.forEach(output => {
+                    const pipeUid = normalizePipeUid(output.pipe_uid);
+                    if (pipeUid === null) return;
+                    const key = `${transformId}|${pipeUid}`;
+                    const start = transformOutPorts.get(key);
+                    const end = ingredientOutPorts.get(key);
+                    if (!start || !end) return;
+                    appendPath(svg, buildCurvePath(start, end), getPipeColor(pipeUid, output.color), 'flow-link');
+                });
+
+                transformOutputs.forEach(output => {
+                    const pipeUid = normalizePipeUid(output.pipe_uid);
+                    if (pipeUid === null) return;
+                    allPipes.add(pipeUid);
+                    if (!metaByPipe.has(pipeUid)) metaByPipe.set(pipeUid, output);
+                    if (!producersByPipe.has(pipeUid)) producersByPipe.set(pipeUid, transformId);
+                });
+
+                transformInputs.forEach(input => {
+                    const pipeUid = normalizePipeUid(input.pipe_uid);
+                    if (pipeUid === null) return;
+                    allPipes.add(pipeUid);
+                    if (!metaByPipe.has(pipeUid)) metaByPipe.set(pipeUid, input);
+                    if (!consumersByPipe.has(pipeUid)) consumersByPipe.set(pipeUid, []);
+                    consumersByPipe.get(pipeUid).push(transformId);
+                });
+            });
+
+            allPipes.forEach(pipeUid => {
+                const producerId = producersByPipe.get(pipeUid) || null;
+                const consumers = (consumersByPipe.get(pipeUid) || [])
+                    .sort((a, b) => (transformRank.get(a) ?? 0) - (transformRank.get(b) ?? 0));
+                const meta = metaByPipe.get(pipeUid) || {};
+                const color = getPipeColor(pipeUid, meta.color);
+
+                if (producerId && consumers.length > 0) {
+                    consumers.forEach(consumerId => {
+                        const start = ingredientOutPorts.get(`${producerId}|${pipeUid}`)
+                            || transformOutPorts.get(`${producerId}|${pipeUid}`);
+                        const end = ingredientInPorts.get(`${consumerId}|${pipeUid}`)
+                            || transformInPorts.get(`${consumerId}|${pipeUid}`);
+                        if (!start || !end) return;
+
+                        appendPath(svg, buildCurvePath(start, end), color, 'flow-link');
+                    });
+                    return;
+                }
+
+                if (!producerId && consumers.length > 0) {
+                    consumers.forEach(consumerId => {
+                        const end = ingredientInPorts.get(`${consumerId}|${pipeUid}`)
+                            || transformInPorts.get(`${consumerId}|${pipeUid}`);
+                        if (!end) return;
+                        const start = { x: leftX, y: end.y - 20 };
+
+                        appendPath(svg, buildCurvePath(start, end), color, 'flow-link base-input');
+                    });
+                    return;
+                }
+
+                if (producerId && consumers.length === 0) {
+                    const start = ingredientOutPorts.get(`${producerId}|${pipeUid}`)
+                        || transformOutPorts.get(`${producerId}|${pipeUid}`);
+                    if (!start) return;
+                    const end = { x: rightX, y: start.y + 20 };
+                    appendPath(svg, buildCurvePath(start, end), color, 'flow-link terminal-output');
+                }
+            });
+        }
+
+        function appendPath(svg, d, color, className) {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', d);
+            path.setAttribute('stroke', color);
+            path.setAttribute('class', className);
+            svg.appendChild(path);
+            return path;
+        }
+
+        function buildCurvePath(start, end) {
+            const deltaY = end.y - start.y;
+            const bend = Math.max(34, Math.abs(deltaY) * 0.42);
+            const dir = deltaY >= 0 ? 1 : -1;
+            const c1y = start.y + (bend * dir);
+            const c2y = end.y - (bend * dir);
+            return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} C ${start.x.toFixed(2)} ${c1y.toFixed(2)}, ${end.x.toFixed(2)} ${c2y.toFixed(2)}, ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+        }
+
+        function uniqueIoByPipe(items) {
+            const seen = new Set();
+            const result = [];
+            items.forEach((item, index) => {
+                const pipeUid = normalizePipeUid(item.pipe_uid);
+                const key = pipeUid === null
+                    ? `missing:${index}:${formatName(item)}`
+                    : `pipe:${pipeUid}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                result.push(item);
+            });
+            return result;
+        }
+
+        function pipeSetFromIo(items) {
+            const set = new Set();
+            uniqueIoByPipe(items || []).forEach(item => {
+                const pipeUid = normalizePipeUid(item.pipe_uid);
+                if (pipeUid !== null) set.add(pipeUid);
+            });
+            return set;
+        }
+
+        function normalizePipeUid(pipeUid) {
+            if (pipeUid === null || pipeUid === undefined) return null;
+            const str = String(pipeUid).trim();
+            return str.length > 0 ? str : null;
+        }
+
+        function formatAmount(io) {
+            if (io.amount === null || io.amount === undefined || io.amount === '') return '';
+            return `${io.amount}${io.unit_name ? ` ${io.unit_name}` : ''}`;
+        }
+
+        function formatName(io) {
+            return io.display_name || io.ingredient_name || io.tool_name || 'Unnamed flow';
+        }
+
+        function formatIoLabel(io, includeToolTag) {
+            const amount = formatAmount(io);
+            const name = formatName(io);
+            let label = amount ? `${amount} ${name}` : name;
+            if (includeToolTag && io.tool_name && !io.ingredient_name) {
+                label += ' (tool)';
+            }
+            return label;
+        }
+
+        function getPipeColor(pipeUid, explicitColor) {
+            if (explicitColor) return explicitColor;
+            if (pipeUid === null) return '#9fb2d0';
+            let hash = 0;
+            for (let i = 0; i < pipeUid.length; i += 1) {
+                hash = ((hash << 5) - hash) + pipeUid.charCodeAt(i);
+                hash |= 0;
+            }
+            const idx = Math.abs(hash) % PIPE_PALETTE.length;
+            return PIPE_PALETTE[idx];
         }
 
         function escapeHtml(str) {
@@ -831,6 +1130,11 @@
             div.textContent = str;
             return div.innerHTML;
         }
+
+        window.addEventListener('resize', () => {
+            if (!currentRecipeData || !views.recipe.classList.contains('active')) return;
+            scheduleFlowDraw();
+        });
 
         // Initial load
         loadRecipes();
