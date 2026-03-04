@@ -236,6 +236,61 @@
             color: #888;
         }
 
+        .input-ingredients {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 0.9rem 1.1rem;
+            margin-bottom: 1.25rem;
+            border: 1px solid #28406e;
+        }
+
+        .input-ingredients h3 {
+            color: #ff718a;
+            margin-bottom: 0.55rem;
+            font-size: 0.94rem;
+        }
+
+        .input-ingredients-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .input-ingredient-item {
+            display: flex;
+            gap: 0.45rem;
+            align-items: center;
+            color: #d9e5ff;
+            font-size: 0.86rem;
+            min-width: 0;
+        }
+
+        .input-ingredient-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--pipe-color, #9fb2d0);
+            flex-shrink: 0;
+        }
+
+        .input-ingredient-amount {
+            color: #ffd6de;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .input-ingredient-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .input-ingredients-empty {
+            color: #93a4c2;
+            font-size: 0.9rem;
+        }
+
         .back-btn {
             background: #0f3460;
             color: #eee;
@@ -818,6 +873,7 @@
                 });
             });
 
+            const inputIngredients = collectBaseIngredientInputs(transforms, firstProducerStepByPipe);
             const pipeLaneByUid = new Map();
             const freeLanes = [];
             let maxLaneAssigned = 0;
@@ -860,6 +916,7 @@
                 </div>
             `;
 
+            html += renderInputIngredientsSection(inputIngredients);
             html += '<div class="graph-shell"><svg class="flow-svg" aria-hidden="true"></svg><div class="steps-list">';
 
             transforms.forEach((transform, index) => {
@@ -1019,6 +1076,65 @@
                     style="--lane-index: ${laneIndex};"
                 >
                     ${content}
+                </section>
+            `;
+        }
+
+        function collectBaseIngredientInputs(transforms, firstProducerStepByPipe) {
+            const collected = [];
+            const seen = new Set();
+
+            transforms.forEach((transform, stepIdx) => {
+                uniqueIoByPipe(transform.inputs || []).forEach(input => {
+                    if (input.tool_name && !input.ingredient_name) return;
+
+                    const pipeUid = normalizePipeUid(input.pipe_uid);
+                    const producerStepIdx = pipeUid === null ? undefined : firstProducerStepByPipe.get(pipeUid);
+                    const isDerivedInput = producerStepIdx !== undefined && producerStepIdx < stepIdx;
+                    if (isDerivedInput) return;
+
+                    const key = pipeUid === null
+                        ? `${formatName(input)}|${formatAmount(input)}`
+                        : pipeUid;
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    collected.push(input);
+                });
+            });
+
+            return collected;
+        }
+
+        function renderInputIngredientsSection(inputIngredients) {
+            if (!inputIngredients || inputIngredients.length === 0) {
+                return `
+                    <section class="input-ingredients">
+                        <h3>Input ingredients</h3>
+                        <p class="input-ingredients-empty">No input ingredients were detected for this recipe.</p>
+                    </section>
+                `;
+            }
+
+            const items = inputIngredients.map(io => {
+                const pipeUid = normalizePipeUid(io.pipe_uid);
+                const color = getPipeColor(pipeUid, io.color);
+                const amount = formatAmount(io) || 'Amount not specified';
+                const name = formatName(io);
+                return `
+                    <li class="input-ingredient-item">
+                        <span class="input-ingredient-dot" style="--pipe-color: ${color};"></span>
+                        <span class="input-ingredient-amount">${escapeHtml(amount)}</span>
+                        <span class="input-ingredient-name">${escapeHtml(name)}</span>
+                    </li>
+                `;
+            }).join('');
+
+            return `
+                <section class="input-ingredients">
+                    <h3>Input ingredients</h3>
+                    <ul class="input-ingredients-list">
+                        ${items}
+                    </ul>
                 </section>
             `;
         }
