@@ -264,7 +264,7 @@
             z-index: 2;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0;
         }
 
         .transform-step {
@@ -274,6 +274,7 @@
             border-left: 6px solid #e94560;
             border-radius: 10px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+            margin: 0.5rem 0;
         }
 
         .transform-step.passive {
@@ -320,6 +321,10 @@
             border: 2px solid currentColor;
             background: rgba(15, 22, 42, 0.92);
             border-radius: 50%;
+        }
+
+        .flow-port.right-lane {
+            margin-right: calc((var(--lane-index, 1) - 1) * var(--flow-port-size));
         }
 
         .step-body {
@@ -369,6 +374,7 @@
             align-items: center;
             gap: 0.65rem;
             align-self: flex-start;
+            margin: 0.12rem 0;
         }
 
         .ingredient-entry.incoming {
@@ -379,12 +385,13 @@
         .ingredient-entry.incoming.derived {
             justify-content: flex-end;
             align-self: flex-end;
+            margin-right: calc((var(--lane-index, 1) - 1) * var(--flow-port-size));
         }
 
         .ingredient-entry.outgoing {
             justify-content: flex-end;
             align-self: flex-end;
-            margin-right: calc(var(--right-rail-count, 0) * var(--flow-port-size));
+            margin-right: calc((var(--lane-index, 1) - 1) * var(--flow-port-size));
         }
 
         .ingredient-port {
@@ -811,6 +818,37 @@
                 });
             });
 
+            const pipeLaneByUid = new Map();
+            const freeLanes = [];
+            let maxLaneAssigned = 0;
+
+            function claimLane(pipeUid) {
+                if (pipeLaneByUid.has(pipeUid)) {
+                    return pipeLaneByUid.get(pipeUid);
+                }
+
+                let lane;
+                if (freeLanes.length > 0) {
+                    freeLanes.sort((a, b) => a - b);
+                    lane = freeLanes.pop();
+                } else {
+                    maxLaneAssigned += 1;
+                    lane = maxLaneAssigned;
+                }
+
+                pipeLaneByUid.set(pipeUid, lane);
+                return lane;
+            }
+
+            function releaseLane(pipeUid) {
+                if (!pipeLaneByUid.has(pipeUid)) return;
+                const lane = pipeLaneByUid.get(pipeUid);
+                pipeLaneByUid.delete(pipeUid);
+                if (!freeLanes.includes(lane)) {
+                    freeLanes.push(lane);
+                }
+            }
+
             let html = `
                 <div class="recipe-header">
                     <h2>${escapeHtml(recipe.name)}</h2>
@@ -833,37 +871,51 @@
                 const prevOutputPipes = previousStep
                     ? pipeSetFromIo(previousStep.outputs || [])
                     : new Set();
-                const rightRailCount = countRightRailPipesAtStep(
-                    index,
-                    firstProducerStepByPipe,
-                    lastConsumerStepByPipe
-                );
-                const listInputs = inputs.filter(input => {
-                    const pipeUid = normalizePipeUid(input.pipe_uid);
-                    return !(pipeUid && prevOutputPipes.has(pipeUid));
-                });
-                const baseInputs = [];
-                const derivedInputs = [];
 
-                inputs.forEach(input => {
+                const inputInfos = inputs.map(input => {
                     const pipeUid = normalizePipeUid(input.pipe_uid);
                     const producerStepIdx = pipeUid === null ? undefined : firstProducerStepByPipe.get(pipeUid);
                     const isDerivedInput = producerStepIdx !== undefined && producerStepIdx < index;
-                    if (isDerivedInput) {
-                        derivedInputs.push(input);
-                    } else {
-                        baseInputs.push(input);
-                    }
+                    const laneIndex = isDerivedInput && pipeUid !== null
+                        ? claimLane(pipeUid)
+                        : 1;
+
+                    return {
+                        io: input,
+                        pipeUid,
+                        isDerivedInput,
+                        laneIndex
+                    };
                 });
 
-                if (listInputs.length > 0) {
-                    listInputs.forEach(input => {
-                        const pipeUid = normalizePipeUid(input.pipe_uid);
-                        const producerStepIdx = pipeUid === null ? undefined : firstProducerStepByPipe.get(pipeUid);
-                        const isDerivedInput = producerStepIdx !== undefined && producerStepIdx < index;
-                        html += renderIngredientEntry(input, transform.id, isDerivedInput ? 'in-derived' : 'in', stepNumber);
+                const listInputInfos = inputInfos.filter(info => !(info.pipeUid && prevOutputPipes.has(info.pipeUid)));
+                const baseInputInfos = inputInfos.filter(info => !info.isDerivedInput);
+                const derivedInputInfos = inputInfos.filter(info => info.isDerivedInput);
+
+                if (listInputInfos.length > 0) {
+                    listInputInfos.forEach(info => {
+                        html += renderIngredientEntry(
+                            info.io,
+                            transform.id,
+                            info.isDerivedInput ? 'in-derived' : 'in',
+                            stepNumber,
+                            info.laneIndex
+                        );
                     });
                 }
+
+                const releasableInputPipes = derivedInputInfos
+                    .filter(info => info.pipeUid && lastConsumerStepByPipe.get(info.pipeUid) === index)
+                    .map(info => info.pipeUid);
+                releasableInputPipes.forEach(pipeUid => releaseLane(pipeUid));
+
+                const outputInfos = outputs.map(output => {
+                    const pipeUid = normalizePipeUid(output.pipe_uid);
+                    const laneIndex = pipeUid !== null
+                        ? claimLane(pipeUid)
+                        : 1;
+                    return { io: output, pipeUid, laneIndex };
+                });
 
                 html += `
                     <section class="transform-step ${isPassive ? 'passive' : ''}" data-transform-id="${escapeHtml(String(transform.id))}">
@@ -871,10 +923,10 @@
                             ${inputs.length > 0
                                 ? `
                                     <div class="step-port-group left">
-                                        ${baseInputs.map(input => renderFlowPort(input, transform.id, 'in', 'transform')).join('')}
+                                        ${baseInputInfos.map(info => renderFlowPort(info.io, transform.id, 'in', 'transform', info.laneIndex, 'none')).join('')}
                                     </div>
                                     <div class="step-port-group right">
-                                        ${derivedInputs.map(input => renderFlowPort(input, transform.id, 'in', 'transform')).join('')}
+                                        ${derivedInputInfos.map(info => renderFlowPort(info.io, transform.id, 'in', 'transform', info.laneIndex, 'right')).join('')}
                                     </div>
                                 `
                                 : '<span class="step-chip">No incoming flow</span>'}
@@ -885,22 +937,25 @@
                                 <div class="step-submeta">
                                     <span class="step-chip">${escapeHtml(transform.action_name || 'process')}</span>
                                     ${transform.duration_minutes ? `<span class="step-chip">${transform.duration_minutes} min</span>` : ''}
-                                    ${isPassive ? '<span class="step-chip">Passive</span>' : '<span class="step-chip">Active</span>'}
                                 </div>
                             </div>
                             ${transform.description ? `<div class="step-description">${escapeHtml(transform.description)}</div>` : ''}
                         </div>
                         <div class="step-ports out">
-                            ${outputs.length > 0
-                                ? outputs.map(output => renderFlowPort(output, transform.id, 'out', 'transform')).join('')
+                            ${outputInfos.length > 0
+                                ? `
+                                    <div class="step-port-group right">
+                                        ${outputInfos.map(info => renderFlowPort(info.io, transform.id, 'out', 'transform', info.laneIndex, 'right')).join('')}
+                                    </div>
+                                `
                                 : '<span class="step-chip">No outgoing flow</span>'}
                         </div>
                     </section>
                 `;
 
-                if (outputs.length > 0) {
-                    outputs.forEach(output => {
-                        html += renderIngredientEntry(output, transform.id, 'out', stepNumber, rightRailCount);
+                if (outputInfos.length > 0) {
+                    outputInfos.forEach(info => {
+                        html += renderIngredientEntry(info.io, transform.id, 'out', stepNumber, info.laneIndex);
                     });
                 }
             });
@@ -912,25 +967,30 @@
             scheduleFlowDraw();
         }
 
-        function renderFlowPort(io, transformId, direction, role) {
+        function renderFlowPort(io, transformId, direction, role, laneIndex = 1, laneSide = 'none') {
             const pipeUid = normalizePipeUid(io.pipe_uid);
             const color = getPipeColor(pipeUid, io.color);
             const label = formatIoLabel(io, true);
+            const laneClass = laneSide === 'right'
+                ? ' right-lane'
+                : laneSide === 'left'
+                    ? ' left-lane'
+                    : '';
 
             return `
                 <span
-                    class="flow-port"
+                    class="flow-port${laneClass}"
                     data-transform-id="${escapeHtml(String(transformId))}"
                     data-pipe-uid="${pipeUid === null ? '' : escapeHtml(pipeUid)}"
                     data-dir="${direction}"
                     data-port-role="${role}"
                     title="${escapeHtml(label)}"
-                    style="--pipe-color: ${color};"
+                    style="--pipe-color: ${color}; --lane-index: ${laneIndex};"
                 ></span>
             `;
         }
 
-        function renderIngredientEntry(io, transformId, direction, stepNumber, rightRailCount = 0) {
+        function renderIngredientEntry(io, transformId, direction, stepNumber, laneIndex = 1) {
             const pipeUid = normalizePipeUid(io.pipe_uid);
             const color = getPipeColor(pipeUid, io.color);
             const amount = formatAmount(io);
@@ -941,7 +1001,7 @@
             const label = isInput
                 ? `Step ${stepNumber} input`
                 : `Step ${stepNumber} output`;
-            const port = renderFlowPort(io, transformId, portDir, 'ingredient');
+            const port = renderFlowPort(io, transformId, portDir, 'ingredient', laneIndex, 'none');
             const ingredientBody = `
                 <div class="ingredient-entry-main" style="--pipe-color: ${color};">
                     <span class="ingredient-dot"></span>
@@ -956,7 +1016,7 @@
                 <section
                     class="ingredient-entry ${isInput ? 'incoming' : 'outgoing'}${direction === 'in-derived' ? ' derived' : ''}"
                     title="${escapeHtml(label)}"
-                    style="--right-rail-count: ${rightRailCount};"
+                    style="--lane-index: ${laneIndex};"
                 >
                     ${content}
                 </section>
@@ -1156,18 +1216,6 @@
                 if (pipeUid !== null) set.add(pipeUid);
             });
             return set;
-        }
-
-        function countRightRailPipesAtStep(stepIdx, firstProducerStepByPipe, lastConsumerStepByPipe) {
-            let count = 0;
-            firstProducerStepByPipe.forEach((producerStep, pipeUid) => {
-                const lastConsumerStep = lastConsumerStepByPipe.get(pipeUid);
-                if (lastConsumerStep === undefined) return;
-                if (producerStep <= stepIdx && lastConsumerStep > stepIdx) {
-                    count += 1;
-                }
-            });
-            return count;
         }
 
         function normalizePipeUid(pipeUid) {
