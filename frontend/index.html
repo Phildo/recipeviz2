@@ -403,6 +403,7 @@
         .step-submeta {
             display: flex;
             flex-wrap: wrap;
+            align-items: center;
             gap: 0.45rem;
             font-size: 0.78rem;
             color: #93a4c2;
@@ -413,6 +414,38 @@
             border: 1px solid #334973;
             border-radius: 999px;
             padding: 0.15rem 0.5rem;
+        }
+
+        .step-timer {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.15rem 0.5rem;
+            line-height: 1;
+        }
+
+        .step-timer-svg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            display: block;
+            transform: translate(-50%, -50%);
+            opacity: 0.36;
+            pointer-events: none;
+        }
+
+        .step-timer-text {
+            position: relative;
+            white-space: nowrap;
+            color: #f4f8ff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            line-height: 1;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+            letter-spacing: 0.01em;
         }
 
         .step-description {
@@ -427,7 +460,8 @@
             max-width: 100%;
             display: inline-flex;
             align-items: center;
-            gap: 0.65rem;
+            --ingredient-gap: 0.65rem;
+            gap: var(--ingredient-gap);
             align-self: flex-start;
             margin: 0.12rem 0;
         }
@@ -453,12 +487,35 @@
             flex-shrink: 0;
         }
 
+        .ingredient-entry .flow-port {
+            position: relative;
+        }
+
+        .ingredient-entry > .flow-port:first-child::after,
+        .ingredient-entry > .flow-port:last-child::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: var(--ingredient-gap);
+            height: 2px;
+            background: currentColor;
+            transform: translateY(-50%);
+        }
+
+        .ingredient-entry > .flow-port:first-child::after {
+            left: 100%;
+        }
+
+        .ingredient-entry > .flow-port:last-child::before {
+            right: 100%;
+        }
+
         .ingredient-entry-main {
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
             border-radius: 999px;
-            border: 1px solid rgba(159, 178, 208, 0.38);
+            border: 1px solid var(--pipe-color, #9fb2d0);
             background: rgba(12, 18, 36, 0.92);
             padding: 0.2rem 0.65rem;
             font-size: 0.8rem;
@@ -565,9 +622,13 @@
                 padding: 0.75rem 0.75rem 1.5rem;
             }
 
-            .ingredient-entry,
-            .ingredient-entry.outgoing {
+            .ingredient-entry.incoming {
                 align-self: flex-start;
+            }
+
+            .ingredient-entry.incoming.derived,
+            .ingredient-entry.outgoing {
+                align-self: flex-end;
             }
 
             .ingredient-entry-main {
@@ -993,7 +1054,20 @@
                                 <span class="step-title">${stepNumber}. ${escapeHtml(transform.name || 'Unnamed step')}</span>
                                 <div class="step-submeta">
                                     <span class="step-chip">${escapeHtml(transform.action_name || 'process')}</span>
-                                    ${transform.duration_minutes ? `<span class="step-chip">${transform.duration_minutes} min</span>` : ''}
+                                    ${transform.duration_minutes
+                                        ? `
+                                            <span class="step-timer" role="img" aria-label="Duration ${escapeHtml(String(transform.duration_minutes))} minutes">
+                                                <svg class="step-timer-svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                                                    <circle cx="32" cy="35" r="20" fill="#27344a" stroke="#506385" stroke-width="2"></circle>
+                                                    <rect x="25" y="9" width="14" height="7" rx="3.5" fill="#44587a"></rect>
+                                                    <line x1="32" y1="35" x2="32" y2="24" stroke="#7f97bd" stroke-width="2.2" stroke-linecap="round"></line>
+                                                    <line x1="32" y1="35" x2="40" y2="39" stroke="#7f97bd" stroke-width="2.2" stroke-linecap="round"></line>
+                                                    <circle cx="32" cy="35" r="2" fill="#90a7cb"></circle>
+                                                </svg>
+                                                <span class="step-timer-text">${escapeHtml(String(transform.duration_minutes))}m</span>
+                                            </span>
+                                        `
+                                        : ''}
                                 </div>
                             </div>
                             ${transform.description ? `<div class="step-description">${escapeHtml(transform.description)}</div>` : ''}
